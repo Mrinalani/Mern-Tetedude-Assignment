@@ -1,6 +1,7 @@
 import React from 'react'
 
-const Searchbar = () => {
+const Searchbar = ({searchText, setSearchText}) => {
+ 
   return (
     <div >
         <div className='mt-6 w-full flex justify-end px-6'>

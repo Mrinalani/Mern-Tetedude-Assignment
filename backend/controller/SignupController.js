@@ -4,35 +4,12 @@ import jwt from 'jsonwebtoken';
 
 export const SignupController = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, username } = req.body;
+    console.log(name, email, password, username);
 
-    if ((!name, !email, !password)) {
+    if ((!name, !email, !password, !username)) {
       return res.status(400).json({ error: "All fields are required" });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({
-      Name: name,
-      Email: email,
-      Password: hashedPassword,
-    });
-
-    const saveUser = await user.save();
-
-   return res
-      .status(201)
-      .json({ response: saveUser, message: "user created successfully" });
-  } catch (error) {
-    console.log(error);
-   return res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
-export const getUserByuserNameAndEmail = async (req, res) => {
-  try {
-    const { username, email } = req.params;
-    console.log(username, email)
 
     const userName = await User.findOne({ Username: username});
     if (userName) {
@@ -47,10 +24,24 @@ export const getUserByuserNameAndEmail = async (req, res) => {
         .json({ exist: true, message: "Email already exists" , userEmail});
     } 
 
-    return res.status(200).json({exist:false, message: "User not found"})
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      Name: name,
+      Username: username,
+      Email: email,
+      Password: hashedPassword,
+    });
+
+    const saveUser = await user.save();
+
+   return res
+      .status(201)
+      .json({ response: saveUser, message: "user created successfully" });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.log(error);
+   return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -81,58 +72,202 @@ export const loginController = async (req,res) => {
    }
 }
 
-export const addFriend = async (req,res) => {
-try {
-  const {friendId} = req.user;
+export const getAllUser = async (req,res) => {
+  try {
+    console.log("get all users")
+   const excludedId = req.user._id
+   const users = await User.find({ _id: { $ne: excludedId } });
+   if(users.length === 0){
+    return res.status(400).json({message: "No User Found"});
+  }
 
+  return res.status(200).json({message: "User fetched Successfully", users:users})
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export const getUser = async (req,res) => {
+  try {
+    const user = req.user;
+
+  return res.status(200).json({message: "User fetched Successfully", user})
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+export const followFriend = async (req,res) => {
+try {
+  const {friendId} = req.params;
   if(!friendId){
     return res.status(400).json({ error: "friendId is required" });
   }
+  const friend = await User.findById(friendId)
 
-  req.user.friends =  req.user.friends || [];
-  req.user.friends.push(friendId)
+  req.user.Followings.push(friendId)
+  friend.Requests.push(req.user._id)
+  friend.Followers.push(req.user._id)
 
- const user =  await req.user.save()
-
- return res.status(200).json({message: 'Friend added successfully', user: user })
+  
+   await friend.save()
+   await req.user.save()
+ return res.status(200).json({message: 'Friend added successfully', })
 } catch (error) {
   console.error(error);
     res.status(500).json({ message: 'Internal server error' });
 }
 }
 
-export const removeFriend = async (req,res) => {
+export const unfollowFriend = async (req,res) => {
   try {
-    const {friendId} = req.user;
+    const {friendId} = req.params;
   
     if(!friendId){
       return res.status(400).json({ error: "friendId is required" });
     }
   
     const user = req.user;
+    const friend = await User.findById(friendId)
 
-    const filteredUser = user.friends.filter((u)=> u.id != friendId)
+   user.Followings = user.Followings.filter((u) => u.toString() != friendId.toString());
+
+   friend.Followers = friend.Followers.filter((u) => u.toString() != user._id.toString());
+
+
+   if (friend.Requests.includes(user._id)) {
+     friend.Requests = friend.Requests.filter((u) => u.toString() != user._id.toString());
+
+   }
+
+   // Save the changes to the database
+   await user.save();
+   await friend.save();
+
+
+   console.log(friend)
+   console.log(req.user)
   
-   return res.status(200).json({message: 'Friend removed successfully', user: filteredUser })
+   return res.status(200).json({message: 'Friend removed successfully' })
   } catch (error) {
     console.error(error);
       res.status(500).json({ message: 'Internal server error' });
   }
   }
 
-  export const getFriend = (req, res) => {
+  export const getFriend = async(req, res) => {
    try {
     const user = req.user;
-    const friends = user.friends;
+    const friends = user.Friends;
 
     if (friends.length === 0) {
       return res.status(200).json({ message: 'No friends found', friends });
     }
+    const userFriends = await User.find({ _id: { $in: friends } });
 
-    res.status(200).json({ message: 'Friends retrieved successfully', friends });
+    res.status(200).json({ message: 'Friends retrieved successfully', userFriends });
    } catch (error) {
     console.log(error)
     return res.status(500).json({error: "Internal Server Error"})
    }
+  }
+
+  export const getRequest = async(req, res) => {
+     try {
+      const user = req.user;
+  
+      const requests = user.Requests;
+
+      const userRequests = await User.find({ _id: { $in: requests } });
+  
+      res.status(200).json({ message: 'Requests retrieved successfully', userRequests });
+      
+     } catch (error) {
+      console.log(error)
+    return res.status(500).json({error: "Internal Server Error"})
+     }
+  }
+
+  export const followBack = async(req, res) => {
+try {
+  const {followBackId} = req.query;
+
+  const friend = User.findById(followBackId)
+
+   req.user.Following.push(followBackId);
+   friend.Following.push(req.user._id)
+   req.user.Friend.push(followBackId);
+
+   const user = await req.user.save()
+
+   res.status(200).json({ message: 'Follow Back User', user });
+} catch (error) {
+  console.log(error)
+    return res.status(500).json({error: "Internal Server Error"})
+}
+  }
+
+  export const acceptRequest = async(req, res) => {
+    try {
+      const {friendId} = req.params;
+    if(!friendId){
+      return res.status(400).json({ error: "friendId is required" });
+    }
+
+    const user = req.user;
+    const friend = await User.findById(friendId)
+
+    console.log(user._id)
+    console.log(friend._id)
+
+    console.log(friend.Requests, "friend.Requests")
+    user.Followings.push(friendId)
+    friend.Followers.push(user._id)
+
+    user.Friends.push(friendId)
+    friend.Friends.push(user._id)
+    
+    user.Requests = friend.Requests.filter((u) => u.toString() != friendId.toString());
+
+    console.log(friend.Requests, "friend.Requests")
+
+
+    await user.save()
+    await friend.save().catch((err) => console.error(err));
+
+    return res.status(200).json({message: 'Friend added successfully', })
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+
+  }
+
+  export const rejectRequest = async(req, res) => {
+    console.log("gvdcg")
+    try {
+      const {friendId} = req.params;
+    if(!friendId){
+      return res.status(400).json({ error: "friendId is required" });
+    }
+
+    const user = req.user;
+    const friend = await User.findById(friendId)
+    console.log(friendId)
+
+    user.Requests = friend.Requests.filter((u) => u.toString() != friendId.toString());
+
+    await user.save()
+
+    return res.status(200).json({message: 'Friend added successfully', })
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+
   }
   

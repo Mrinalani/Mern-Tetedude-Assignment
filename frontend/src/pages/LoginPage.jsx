@@ -1,4 +1,6 @@
+import axios from 'axios';
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
     
@@ -6,7 +8,9 @@ const LoginPage = () => {
        email: "",
        password: "",
      });
-      
+
+     const navigate = useNavigate()
+
      const handleChange = (e) => {
        e.preventDefault();
        const name = e.target.name;
@@ -14,10 +18,23 @@ const LoginPage = () => {
        setFormData({...formData, [name]:value})
      }
    
-     const handleSubmit = (e) => {
-       e.preventDefault(); 
-       console.log(formData)
-     }
+     const handleSubmit = async(e) => {
+      e.preventDefault(); 
+
+      try {
+        console.log(formData)
+  
+        const response = await axios.post('http://localhost:3000/login', formData);
+        localStorage.setItem('token',response.data.token)
+        console.log(response)
+        navigate('/home')
+  
+      } catch (error) {
+        console.log(error)
+        alert(error.response.data.error || "something went wrong")
+      }
+     
+    }
      return (
        <div className="h-screen flex justify-center items-center text-center">
          <div className="flex flex-col justify-center items-center text-center p-4">

@@ -1,4 +1,6 @@
-import React from 'react'
+import axios from 'axios'
+import React, { useEffect, useState } from 'react'
+import FriendCard from './FriendCard'
 
 const Friends = () => {
     const FRIENDS = [
@@ -19,18 +21,32 @@ const Friends = () => {
             Email:"manku@gmail.com",
         }
     ]
+    const [friends, setFriends] = useState([])
+    
+    useEffect(()=>{
+
+        const fetchFriends = async() => {
+            try {
+                const token = localStorage.getItem('token')
+                const friends = await axios.get('http://localhost:3000/getfriends', { headers: { "Authorization": token }});
+                console.log("friends",friends.data.userFriends)
+                setFriends(friends.data.userFriends || [])
+
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                // alert(error.response.data.error || "something went wrong")
+            }
+        }
+        fetchFriends()
+    },[])
   return (
     <div className='max-h-screen'>
         <h1 className='text-3xl ml-6 py-6 text-center font-bold'>Friends</h1>
        <div className='h-screen'>
         <div className='overflow-y-scroll max-h-screen px-4'>
-        {FRIENDS.map(({Name, Email})=>(
+        {friends.map((user)=>(
             <div className=''>
-            <div className='flex flex-col border-2 border-black mt-2 p-1'>
-                <h1 className='text-xl text-blue-400'>{Name}</h1>
-                <h3>{Email}</h3>
-                <button className='border-2 border-black mt-2 text-white bg-blue-500 hover:bg-blue-600'>Unfollow</button>
-            </div>
+           <FriendCard user={user}/>
             </div>
         ))}
         </div>

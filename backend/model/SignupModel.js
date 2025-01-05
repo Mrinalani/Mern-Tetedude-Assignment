@@ -18,7 +18,11 @@ const signupSchema = new mongoose.Schema({
         type:String,
         required: true
     },
-    Friends: [{type: mongoose.Schema.Types.ObjectId, ref: "User"}]
+    Friends: [{type: mongoose.Schema.Types.ObjectId, ref: "User"}],
+    Followings:[{type: mongoose.Schema.Types.ObjectId, ref: "User"}],
+    Followers:[{type: mongoose.Schema.Types.ObjectId, ref: "User"}],
+    Requests:[{type: mongoose.Schema.Types.ObjectId, ref: "User"}]
+
 })
 
 const User =  mongoose.model('User', signupSchema)

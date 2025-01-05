@@ -1,11 +1,15 @@
 import React, { useState } from "react";
+import axios from 'axios';
+import { useNavigate } from "react-router-dom";
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
   });
+  const navigate = useNavigate()
    
   const handleChange = (e) => {
     e.preventDefault();
@@ -14,9 +18,20 @@ const SignUpPage = () => {
     setFormData({...formData, [name]:value})
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault(); 
-    console.log(formData)
+
+    try {
+      console.log(formData)
+
+      const response = await axios.post('http://localhost:3000/signup', formData);
+      navigate('/')
+
+    } catch (error) {
+      console.log(error)
+      alert(error.response.data.error || "something went wrong")
+    }
+   
   }
   return (
     <div className="h-screen flex justify-center items-center text-center">
@@ -35,6 +50,22 @@ const SignUpPage = () => {
                 placeholder="Name"
                 className="border-2 border-blue-200 hover:border-blue-400 w-[300px] h-10 rounded-lg p-2"
                 value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col items-start">
+              <label htmlFor="username" className="font-semibold ml-2 py-2">
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="UserName"
+                className="border-2 border-blue-200 hover:border-blue-400 w-[300px] h-10 rounded-lg p-2"
+                value={formData.username}
                 onChange={handleChange}
                 required
               />
